@@ -6,6 +6,8 @@ var open = require('gulp-open'); //open url in browser
 var browserify = require('browserify'); //js bundler
 var reactify = require('reactify'); //transform jsx to js
 var source = require('vinyl-source-stream'); //use conventional text streams with gulp
+var concat = require('gulp-concat');
+var lint = require('gulp-eslint'); //lint js files, including jsx
 
 var config = {
     port: 3000,
@@ -14,7 +16,12 @@ var config = {
         html:'./src/*.html',
         dist: './dist',
         js: './src/**/*.js',
-        mainJs: './src/main.js'
+        css:[
+          'node_modules/bootstrap/dist/css/bootstrap.min.css',
+          'node_modules/bootstrap/dist/css/bootstrap-theme.min.css',
+        ],
+        mainJs: './src/main.js',
+        images:'./src/images/*'
     }
 }
 
@@ -31,29 +38,47 @@ gulp.task('connect', function(){
 
 gulp.task('open',['connect'],function(){
    gulp.src('dist/index.html')
-    .pipe(open({uri: config.devBaseUrl+':'+config.port+'/'})); 
+    .pipe(open({uri: config.devBaseUrl+':'+config.port+'/'}));
 });
 
 gulp.task('html', function(){
    gulp.src(config.paths.html)
    .pipe(gulp.dest(config.paths.dist))
-   .pipe(connect.reload()); 
+   .pipe(connect.reload());
 });
 
 gulp.task('js',function(){
-   browserify(config.paths.mainJs) 
-    .transform(reactify)
+   browserify(config.paths.mainJs)
+    .transform(reactify)//transform javascript using reactify
     .bundle()
     .on('error', console.error.bind(console))
-    .pipe(source('dist.js'))
+    .pipe(source('bundle.js'))
     .pipe(gulp.dest(config.paths.dist + '/scripts'))
     .pipe(connect.reload());
-    
+
+});
+gulp.task('css',function(){
+  gulp.src(config.paths.css)
+  .pipe(concat('bundle.css'))
+  .pipe(gulp.dest(config.paths.dist + '/css'));
+});
+
+gulp.task('images',function(){
+  gulp.src(config.paths.images)
+    .pipe(gulp.dest(config.paths.dist + '/images'))
+    .pipe(connect.reload());
+
+});
+
+gulp.task('lint',function(){
+  return gulp.src(config.paths.js)
+  .pipe(lint({config: 'eslint.config.json'}))
+  .pipe(lint.format());
 });
 
 gulp.task('watch',function(){
-   gulp.watch(config.paths.html,['html']); 
-   gulp.watch(config.paths.js,['js']); 
+   gulp.watch(config.paths.html,['html']);
+   gulp.watch(config.paths.js,['js']);
 });
 
-gulp.task('default',['html','js', 'open','watch']);
+gulp.task('default',['html','js', 'css','images','open','watch']);
