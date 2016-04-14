@@ -1,8 +1,8 @@
 
 $ = jQuery = require('jquery'); //2 different ways to ref jquery, both in global namespace
 var React = require('react');
-var Header = require('./components/common/header');
-var RouteHandler = require('react-router').RouteHandler;
+var Header = require('./common/header');
+var RouteHandler = require('react-router').RouteHandler;//part of react-router
 
 var App = React.createClass({
   render:function(){
@@ -10,7 +10,9 @@ var App = React.createClass({
     return(
       <div>
         <Header/>
-        <RouteHandler/>
+        <div className="container-fluid">
+            <RouteHandler/>
+        </div>
       </div>
     );
   }

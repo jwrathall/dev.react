@@ -1,6 +1,8 @@
 "use strict";
 
 var React = require('react');
+var Router = require('react-router');
+var Link = require('react-router').Link;
 var HeroApi = require('../../api/HeroApi');
 var HeroList = require('./HeroList');
 
@@ -20,6 +22,7 @@ var HerosPage = React.createClass({
 
       <div>
         <h1>Heros</h1>
+        <Link to="addHero" className="btn btn-default">Add Hero</Link>
         <HeroList heros={this.state.heros}/>
       </div>
     );
