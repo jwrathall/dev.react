@@ -1,14 +1,33 @@
 "use strict";
 var React = require('react');
-var Router = require('react-router');
-var Link = Router.Link;
+var HeroForm = require('./heroForm');
 
 var ManageHeros = React.createClass({
+  getInitialState:function(){
+    return{
+      hero : {id:'', firstName:'', lastName:''}
+    };
+  },
+  setHeroState: function(event){
+
+    var field = event.target.name;
+    var value = event.target.value;
+    this.state.hero[field] = value;
+    console.log(event.target) ;
+      console.log(this.refs) ;
+    return this.setState({hero: this.state.hero});
+  },
   render: function(){
     return(
-        <h1>Manage Heros</h1>
+        <HeroForm hero={this.state.hero} onChange={this.setHeroState}/>
     );
   }
 });
 
 module.exports = ManageHeros;
+
+
+/*id:'wolverine',
+firstName:'James',
+lastName:'Howlett',
+heroName:'Wolverine'*/

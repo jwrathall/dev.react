@@ -48780,6 +48780,45 @@ module.exports = Header;
 
 },{"react":197,"react-router":28}],204:[function(require,module,exports){
 "use strict";
+var React = require('react');
+
+
+var Input = React.createClass({displayName: "Input",
+  propTypes:{
+    name: React.PropTypes.string.isRequired,
+    label: React.PropTypes.string.isRequired,
+    onChange: React.PropTypes.func.isRequired,
+    placeholder: React.PropTypes.string,
+    value:React.PropTypes.string,
+    error:React.PropTypes.string
+  },
+  render: function(){
+    var wrapperClass = 'form-group';
+    if(this.props.error && this.props.error.length > 0){
+      wrapperClass += " " + 'has-error';
+    }
+    return(
+      React.createElement("div", {className: wrapperClass}, 
+          React.createElement("label", {htmlFor: this.props.name}, this.props.label), 
+          React.createElement("div", {className: "field"}, 
+              React.createElement("input", {type: "text", 
+                name: this.props.name, 
+                className: "form-control", 
+                placeholder: this.props.name, 
+                ref: this.props.name, 
+                onChange: this.props.onChange, 
+                value: this.props.value}), 
+                React.createElement("div", {className: "input"}, this.props.error)
+          )
+      )
+    );
+  }
+});
+
+module.exports = Input;
+
+},{"react":197}],205:[function(require,module,exports){
+"use strict";
 
 var React = require('react');
 
@@ -48823,7 +48862,41 @@ var HeroList = React.createClass({displayName: "HeroList",
 
 module.exports = HeroList;
 
-},{"react":197}],205:[function(require,module,exports){
+},{"react":197}],206:[function(require,module,exports){
+"use strict";
+var React = require('react');
+var Input  = require('../common/textInput');
+//in its first iteration you cannot enter data into the form
+//due to it being rendered by React and not having a change handler attached and because of the shadow DOM
+//React ignores any changes to the value
+
+var heroForm = React.createClass({displayName: "heroForm",
+  render: function(){
+    console.log(this.props.hero);
+    return(
+        React.createElement("form", null, 
+          React.createElement("h1", null, "Manage Hero"), 
+          React.createElement(Input, {type: "text", 
+            name: "firstName", 
+            label: "First Name", 
+            value: this.props.hero.firstName, 
+            onChange: this.props.onChange}), 
+            React.createElement("br", null), 
+            React.createElement(Input, {type: "text", 
+              name: "lastName", 
+              label: "Last Name", 
+              value: this.props.hero.lastName, 
+              onChange: this.props.onChange}), 
+            React.createElement("br", null), 
+          React.createElement("input", {type: "submit", className: "btn btn-default", value: "save"})
+        )
+    );
+  }
+});
+
+module.exports = heroForm;
+
+},{"../common/textInput":204,"react":197}],207:[function(require,module,exports){
 "use strict";
 
 var React = require('react');
@@ -48857,23 +48930,42 @@ var HerosPage = React.createClass({displayName: "HerosPage",
 
 module.exports = HerosPage;
 
-},{"../../api/HeroApi":198,"./HeroList":204,"react":197,"react-router":28}],206:[function(require,module,exports){
+},{"../../api/HeroApi":198,"./HeroList":205,"react":197,"react-router":28}],208:[function(require,module,exports){
 "use strict";
 var React = require('react');
-var Router = require('react-router');
-var Link = Router.Link;
+var HeroForm = require('./heroForm');
 
 var ManageHeros = React.createClass({displayName: "ManageHeros",
+  getInitialState:function(){
+    return{
+      hero : {id:'', firstName:'', lastName:''}
+    };
+  },
+  setHeroState: function(event){
+
+    var field = event.target.name;
+    var value = event.target.value;
+    this.state.hero[field] = value;
+    console.log(event.target) ;
+      console.log(this.refs) ;
+    return this.setState({hero: this.state.hero});
+  },
   render: function(){
     return(
-        React.createElement("h1", null, "Manage Heros")
+        React.createElement(HeroForm, {hero: this.state.hero, onChange: this.setHeroState})
     );
   }
 });
 
 module.exports = ManageHeros;
 
-},{"react":197,"react-router":28}],207:[function(require,module,exports){
+
+/*id:'wolverine',
+firstName:'James',
+lastName:'Howlett',
+heroName:'Wolverine'*/
+
+},{"./heroForm":206,"react":197}],209:[function(require,module,exports){
 "use strict";
 var React = require('react');
 var Router = require('react-router');
@@ -48893,7 +48985,7 @@ var Home = React.createClass({displayName: "Home",
 
 module.exports = Home;
 
-},{"react":197,"react-router":28}],208:[function(require,module,exports){
+},{"react":197,"react-router":28}],210:[function(require,module,exports){
 
 var React = require('react');
 var Router = require('react-router');
@@ -48908,7 +49000,7 @@ Router.run(routes,function(Handler){
 //React.render(<Home/>, document.getElementById('app'));
 //React.render(<Home/>, document.getElementById('app'));
 
-},{"./routes":209,"react":197,"react-router":28}],209:[function(require,module,exports){
+},{"./routes":211,"react":197,"react-router":28}],211:[function(require,module,exports){
 "use strict";
 
 var React = require('react');
@@ -48933,4 +49025,4 @@ var routes=(
 );
 module.exports = routes;
 
-},{"./components/404":200,"./components/about/aboutPage":201,"./components/app":202,"./components/heros/herosPage":205,"./components/heros/manageHeros":206,"./components/homePage":207,"react":197,"react-router":28}]},{},[208]);
+},{"./components/404":200,"./components/about/aboutPage":201,"./components/app":202,"./components/heros/herosPage":207,"./components/heros/manageHeros":208,"./components/homePage":209,"react":197,"react-router":28}]},{},[210]);
