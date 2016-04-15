@@ -1,6 +1,8 @@
 "use strict";
 
 var React = require('react');
+var Router = require('react-router');
+var Link = Router.Link;
 
 
 var HeroList = React.createClass({
@@ -14,14 +16,10 @@ var HeroList = React.createClass({
       return(
         //react needs a key for child elements or multiple instances to keep track
         <tr key={hero.id}>
-          <td>{hero.id}</td>
-          <td>
-            <a href={"#heros/" + hero.id}>
-              {hero.firstName} {hero.lastName}
-            </a>
-          </td>
+          <td><Link to="editHero" params={{id: hero.id}}>{hero.id}</Link></td>
+          <td>{hero.firstName} {hero.lastName}</td>
         </tr>
-      )
+      );
     };
     return(
 

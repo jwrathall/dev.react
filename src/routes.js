@@ -14,6 +14,7 @@ var routes=(
     <Route name="about" handler={require('./components/about/aboutPage')}/>
     <Route name="heros" handler={require('./components/heros/herosPage')}/>
     <Route name="addHero" path="hero" handler={require('./components/heros/manageHeros')}/>
+    <Route name="editHero" path="hero/:id" handler={require('./components/heros/manageHeros')}/>
       <NotFoundRoute handler={require('./components/404')}/>
       <Redirect from="about-us" to="about"/>
       /*can also be used for common typos

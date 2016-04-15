@@ -6,6 +6,12 @@ var Input  = require('../common/textInput');
 //React ignores any changes to the value
 
 var heroForm = React.createClass({
+  propTypes:{
+    hero: React.PropTypes.object.isRequired,
+    onSave: React.PropTypes.func.isRequired,
+    onChange: React.PropTypes.func.isRequired,
+    errors:React.PropTypes.object
+  },
   render: function(){
     console.log(this.props.hero);
     return(
@@ -15,15 +21,17 @@ var heroForm = React.createClass({
             name="firstName"
             label="First Name"
             value={this.props.hero.firstName}
-            onChange={this.props.onChange} />
+            onChange={this.props.onChange}
+            error = {this.props.errors.firstName}/>
             <br/>
             <Input type="text"
               name="lastName"
               label="Last Name"
               value={this.props.hero.lastName}
-              onChange={this.props.onChange} />
+              onChange={this.props.onChange}
+              error = {this.props.errors.lastName}/>
             <br/>
-          <input type="submit" className="btn btn-default" value="save"/>
+          <input type="submit" className="btn btn-default" value="save" onClick={this.props.onSave}/>
         </form>
     );
   }

@@ -48586,6 +48586,443 @@ module.exports = warning;
 module.exports = require('./lib/React');
 
 },{"./lib/React":70}],198:[function(require,module,exports){
+/*
+ * Toastr
+ * Copyright 2012-2015
+ * Authors: John Papa, Hans Fjällemark, and Tim Ferrell.
+ * All Rights Reserved.
+ * Use, reproduction, distribution, and modification of this code is subject to the terms and
+ * conditions of the MIT license, available at http://www.opensource.org/licenses/mit-license.php
+ *
+ * ARIA Support: Greta Krafsig
+ *
+ * Project: https://github.com/CodeSeven/toastr
+ */
+/* global define */
+; (function (define) {
+    define(['jquery'], function ($) {
+        return (function () {
+            var $container;
+            var listener;
+            var toastId = 0;
+            var toastType = {
+                error: 'error',
+                info: 'info',
+                success: 'success',
+                warning: 'warning'
+            };
+
+            var toastr = {
+                clear: clear,
+                remove: remove,
+                error: error,
+                getContainer: getContainer,
+                info: info,
+                options: {},
+                subscribe: subscribe,
+                success: success,
+                version: '2.1.2',
+                warning: warning
+            };
+
+            var previousToast;
+
+            return toastr;
+
+            ////////////////
+
+            function error(message, title, optionsOverride) {
+                return notify({
+                    type: toastType.error,
+                    iconClass: getOptions().iconClasses.error,
+                    message: message,
+                    optionsOverride: optionsOverride,
+                    title: title
+                });
+            }
+
+            function getContainer(options, create) {
+                if (!options) { options = getOptions(); }
+                $container = $('#' + options.containerId);
+                if ($container.length) {
+                    return $container;
+                }
+                if (create) {
+                    $container = createContainer(options);
+                }
+                return $container;
+            }
+
+            function info(message, title, optionsOverride) {
+                return notify({
+                    type: toastType.info,
+                    iconClass: getOptions().iconClasses.info,
+                    message: message,
+                    optionsOverride: optionsOverride,
+                    title: title
+                });
+            }
+
+            function subscribe(callback) {
+                listener = callback;
+            }
+
+            function success(message, title, optionsOverride) {
+                return notify({
+                    type: toastType.success,
+                    iconClass: getOptions().iconClasses.success,
+                    message: message,
+                    optionsOverride: optionsOverride,
+                    title: title
+                });
+            }
+
+            function warning(message, title, optionsOverride) {
+                return notify({
+                    type: toastType.warning,
+                    iconClass: getOptions().iconClasses.warning,
+                    message: message,
+                    optionsOverride: optionsOverride,
+                    title: title
+                });
+            }
+
+            function clear($toastElement, clearOptions) {
+                var options = getOptions();
+                if (!$container) { getContainer(options); }
+                if (!clearToast($toastElement, options, clearOptions)) {
+                    clearContainer(options);
+                }
+            }
+
+            function remove($toastElement) {
+                var options = getOptions();
+                if (!$container) { getContainer(options); }
+                if ($toastElement && $(':focus', $toastElement).length === 0) {
+                    removeToast($toastElement);
+                    return;
+                }
+                if ($container.children().length) {
+                    $container.remove();
+                }
+            }
+
+            // internal functions
+
+            function clearContainer (options) {
+                var toastsToClear = $container.children();
+                for (var i = toastsToClear.length - 1; i >= 0; i--) {
+                    clearToast($(toastsToClear[i]), options);
+                }
+            }
+
+            function clearToast ($toastElement, options, clearOptions) {
+                var force = clearOptions && clearOptions.force ? clearOptions.force : false;
+                if ($toastElement && (force || $(':focus', $toastElement).length === 0)) {
+                    $toastElement[options.hideMethod]({
+                        duration: options.hideDuration,
+                        easing: options.hideEasing,
+                        complete: function () { removeToast($toastElement); }
+                    });
+                    return true;
+                }
+                return false;
+            }
+
+            function createContainer(options) {
+                $container = $('<div/>')
+                    .attr('id', options.containerId)
+                    .addClass(options.positionClass)
+                    .attr('aria-live', 'polite')
+                    .attr('role', 'alert');
+
+                $container.appendTo($(options.target));
+                return $container;
+            }
+
+            function getDefaults() {
+                return {
+                    tapToDismiss: true,
+                    toastClass: 'toast',
+                    containerId: 'toast-container',
+                    debug: false,
+
+                    showMethod: 'fadeIn', //fadeIn, slideDown, and show are built into jQuery
+                    showDuration: 300,
+                    showEasing: 'swing', //swing and linear are built into jQuery
+                    onShown: undefined,
+                    hideMethod: 'fadeOut',
+                    hideDuration: 1000,
+                    hideEasing: 'swing',
+                    onHidden: undefined,
+                    closeMethod: false,
+                    closeDuration: false,
+                    closeEasing: false,
+
+                    extendedTimeOut: 1000,
+                    iconClasses: {
+                        error: 'toast-error',
+                        info: 'toast-info',
+                        success: 'toast-success',
+                        warning: 'toast-warning'
+                    },
+                    iconClass: 'toast-info',
+                    positionClass: 'toast-top-right',
+                    timeOut: 5000, // Set timeOut and extendedTimeOut to 0 to make it sticky
+                    titleClass: 'toast-title',
+                    messageClass: 'toast-message',
+                    escapeHtml: false,
+                    target: 'body',
+                    closeHtml: '<button type="button">&times;</button>',
+                    newestOnTop: true,
+                    preventDuplicates: false,
+                    progressBar: false
+                };
+            }
+
+            function publish(args) {
+                if (!listener) { return; }
+                listener(args);
+            }
+
+            function notify(map) {
+                var options = getOptions();
+                var iconClass = map.iconClass || options.iconClass;
+
+                if (typeof (map.optionsOverride) !== 'undefined') {
+                    options = $.extend(options, map.optionsOverride);
+                    iconClass = map.optionsOverride.iconClass || iconClass;
+                }
+
+                if (shouldExit(options, map)) { return; }
+
+                toastId++;
+
+                $container = getContainer(options, true);
+
+                var intervalId = null;
+                var $toastElement = $('<div/>');
+                var $titleElement = $('<div/>');
+                var $messageElement = $('<div/>');
+                var $progressElement = $('<div/>');
+                var $closeElement = $(options.closeHtml);
+                var progressBar = {
+                    intervalId: null,
+                    hideEta: null,
+                    maxHideTime: null
+                };
+                var response = {
+                    toastId: toastId,
+                    state: 'visible',
+                    startTime: new Date(),
+                    options: options,
+                    map: map
+                };
+
+                personalizeToast();
+
+                displayToast();
+
+                handleEvents();
+
+                publish(response);
+
+                if (options.debug && console) {
+                    console.log(response);
+                }
+
+                return $toastElement;
+
+                function escapeHtml(source) {
+                    if (source == null)
+                        source = "";
+
+                    return new String(source)
+                        .replace(/&/g, '&amp;')
+                        .replace(/"/g, '&quot;')
+                        .replace(/'/g, '&#39;')
+                        .replace(/</g, '&lt;')
+                        .replace(/>/g, '&gt;');
+                }
+
+                function personalizeToast() {
+                    setIcon();
+                    setTitle();
+                    setMessage();
+                    setCloseButton();
+                    setProgressBar();
+                    setSequence();
+                }
+
+                function handleEvents() {
+                    $toastElement.hover(stickAround, delayedHideToast);
+                    if (!options.onclick && options.tapToDismiss) {
+                        $toastElement.click(hideToast);
+                    }
+
+                    if (options.closeButton && $closeElement) {
+                        $closeElement.click(function (event) {
+                            if (event.stopPropagation) {
+                                event.stopPropagation();
+                            } else if (event.cancelBubble !== undefined && event.cancelBubble !== true) {
+                                event.cancelBubble = true;
+                            }
+                            hideToast(true);
+                        });
+                    }
+
+                    if (options.onclick) {
+                        $toastElement.click(function (event) {
+                            options.onclick(event);
+                            hideToast();
+                        });
+                    }
+                }
+
+                function displayToast() {
+                    $toastElement.hide();
+
+                    $toastElement[options.showMethod](
+                        {duration: options.showDuration, easing: options.showEasing, complete: options.onShown}
+                    );
+
+                    if (options.timeOut > 0) {
+                        intervalId = setTimeout(hideToast, options.timeOut);
+                        progressBar.maxHideTime = parseFloat(options.timeOut);
+                        progressBar.hideEta = new Date().getTime() + progressBar.maxHideTime;
+                        if (options.progressBar) {
+                            progressBar.intervalId = setInterval(updateProgress, 10);
+                        }
+                    }
+                }
+
+                function setIcon() {
+                    if (map.iconClass) {
+                        $toastElement.addClass(options.toastClass).addClass(iconClass);
+                    }
+                }
+
+                function setSequence() {
+                    if (options.newestOnTop) {
+                        $container.prepend($toastElement);
+                    } else {
+                        $container.append($toastElement);
+                    }
+                }
+
+                function setTitle() {
+                    if (map.title) {
+                        $titleElement.append(!options.escapeHtml ? map.title : escapeHtml(map.title)).addClass(options.titleClass);
+                        $toastElement.append($titleElement);
+                    }
+                }
+
+                function setMessage() {
+                    if (map.message) {
+                        $messageElement.append(!options.escapeHtml ? map.message : escapeHtml(map.message)).addClass(options.messageClass);
+                        $toastElement.append($messageElement);
+                    }
+                }
+
+                function setCloseButton() {
+                    if (options.closeButton) {
+                        $closeElement.addClass('toast-close-button').attr('role', 'button');
+                        $toastElement.prepend($closeElement);
+                    }
+                }
+
+                function setProgressBar() {
+                    if (options.progressBar) {
+                        $progressElement.addClass('toast-progress');
+                        $toastElement.prepend($progressElement);
+                    }
+                }
+
+                function shouldExit(options, map) {
+                    if (options.preventDuplicates) {
+                        if (map.message === previousToast) {
+                            return true;
+                        } else {
+                            previousToast = map.message;
+                        }
+                    }
+                    return false;
+                }
+
+                function hideToast(override) {
+                    var method = override && options.closeMethod !== false ? options.closeMethod : options.hideMethod;
+                    var duration = override && options.closeDuration !== false ?
+                        options.closeDuration : options.hideDuration;
+                    var easing = override && options.closeEasing !== false ? options.closeEasing : options.hideEasing;
+                    if ($(':focus', $toastElement).length && !override) {
+                        return;
+                    }
+                    clearTimeout(progressBar.intervalId);
+                    return $toastElement[method]({
+                        duration: duration,
+                        easing: easing,
+                        complete: function () {
+                            removeToast($toastElement);
+                            if (options.onHidden && response.state !== 'hidden') {
+                                options.onHidden();
+                            }
+                            response.state = 'hidden';
+                            response.endTime = new Date();
+                            publish(response);
+                        }
+                    });
+                }
+
+                function delayedHideToast() {
+                    if (options.timeOut > 0 || options.extendedTimeOut > 0) {
+                        intervalId = setTimeout(hideToast, options.extendedTimeOut);
+                        progressBar.maxHideTime = parseFloat(options.extendedTimeOut);
+                        progressBar.hideEta = new Date().getTime() + progressBar.maxHideTime;
+                    }
+                }
+
+                function stickAround() {
+                    clearTimeout(intervalId);
+                    progressBar.hideEta = 0;
+                    $toastElement.stop(true, true)[options.showMethod](
+                        {duration: options.showDuration, easing: options.showEasing}
+                    );
+                }
+
+                function updateProgress() {
+                    var percentage = ((progressBar.hideEta - (new Date().getTime())) / progressBar.maxHideTime) * 100;
+                    $progressElement.width(percentage + '%');
+                }
+            }
+
+            function getOptions() {
+                return $.extend({}, getDefaults(), toastr.options);
+            }
+
+            function removeToast($toastElement) {
+                if (!$container) { $container = getContainer(); }
+                if ($toastElement.is(':visible')) {
+                    return;
+                }
+                $toastElement.remove();
+                $toastElement = null;
+                if ($container.children().length === 0) {
+                    $container.remove();
+                    previousToast = undefined;
+                }
+            }
+
+        })();
+    });
+}(typeof define === 'function' && define.amd ? define : function (deps, factory) {
+    if (typeof module !== 'undefined' && module.exports) { //Node
+        module.exports = factory(require('jquery'));
+    } else {
+        window.toastr = factory(window.jQuery);
+    }
+}));
+
+},{"jquery":2}],199:[function(require,module,exports){
 "use strict";
 
 //This file is mocking a web API by hitting hard coded data.
@@ -48637,7 +49074,59 @@ var HeroApi = {
 
 module.exports = HeroApi;
 
-},{"./heroData":199,"lodash":3}],199:[function(require,module,exports){
+},{"./heroData":201,"lodash":3}],200:[function(require,module,exports){
+"use strict";
+
+//This file is mocking a web API by hitting hard coded data.
+var heros = require('./heroData').heros;
+var _ = require('lodash');
+
+//This would be performed on the server in a real app. Just stubbing in.
+var _generateId = function(hero) {
+	return hero.firstName.toLowerCase() + '-' + hero.lastName.toLowerCase();
+};
+
+var _clone = function(item) {
+	return JSON.parse(JSON.stringify(item)); //return cloned copy so that the item is passed by value instead of by reference
+};
+
+var HeroApi = {
+	getAllHeros: function() {
+		return _clone(heros);
+	},
+
+	getHeroById: function(id) {
+		var hero = _.find(heros, {id: id});
+		return _clone(hero);
+	},
+
+	saveHero: function(hero) {
+		//pretend an ajax call to web api is made here
+		console.log('Pretend this just saved the author to the DB via AJAX call...');
+
+		if (hero.id) {
+			var existingHeroIndex = _.indexOf(heros, _.find(heros, {id: hero.id}));
+			heros.splice(existingHeroIndex, 1, hero);
+		} else {
+			//Just simulating creation here.
+			//The server would generate ids for new authors in a real app.
+			//Cloning so copy returned is passed by value rather than by reference.
+			hero.id = _generateId(hero);
+			heros.push(hero);
+		}
+
+		return _clone(hero);
+	},
+
+	deleteHero: function(id) {
+		console.log('Pretend this just deleted the author from the DB via an AJAX call...');
+		_.remove(heros, { id: id});
+	}
+};
+
+module.exports = HeroApi;
+
+},{"./heroData":201,"lodash":3}],201:[function(require,module,exports){
 module.exports ={
   heros:[
     {
@@ -48662,7 +49151,7 @@ module.exports ={
   ]
 };
 
-},{}],200:[function(require,module,exports){
+},{}],202:[function(require,module,exports){
 "use strict";
 
 var React = require("react");
@@ -48682,7 +49171,7 @@ var NotFound = React.createClass({displayName: "NotFound",
 
 module.exports = NotFound;
 
-},{"react":197,"react-router":28}],201:[function(require,module,exports){
+},{"react":197,"react-router":28}],203:[function(require,module,exports){
 "use strict";
 
 var React  =require('react');
@@ -48726,7 +49215,7 @@ var About = React.createClass({displayName: "About",
 });
 module.exports = About;
 
-},{"react":197}],202:[function(require,module,exports){
+},{"react":197}],204:[function(require,module,exports){
 
 $ = jQuery = require('jquery'); //2 different ways to ref jquery, both in global namespace
 var React = require('react');
@@ -48749,7 +49238,7 @@ var App = React.createClass({displayName: "App",
 
 module.exports = App
 
-},{"./common/header":203,"jquery":2,"react":197,"react-router":28}],203:[function(require,module,exports){
+},{"./common/header":205,"jquery":2,"react":197,"react-router":28}],205:[function(require,module,exports){
 "use strict";
 
 var React = require("react");
@@ -48778,7 +49267,7 @@ var Header = React.createClass({displayName: "Header",
 module.exports = Header;
 //Link uses the named routes as defined in the router.js file
 
-},{"react":197,"react-router":28}],204:[function(require,module,exports){
+},{"react":197,"react-router":28}],206:[function(require,module,exports){
 "use strict";
 var React = require('react');
 
@@ -48817,10 +49306,12 @@ var Input = React.createClass({displayName: "Input",
 
 module.exports = Input;
 
-},{"react":197}],205:[function(require,module,exports){
+},{"react":197}],207:[function(require,module,exports){
 "use strict";
 
 var React = require('react');
+var Router = require('react-router');
+var Link = Router.Link;
 
 
 var HeroList = React.createClass({displayName: "HeroList",
@@ -48834,14 +49325,10 @@ var HeroList = React.createClass({displayName: "HeroList",
       return(
         //react needs a key for child elements or multiple instances to keep track
         React.createElement("tr", {key: hero.id}, 
-          React.createElement("td", null, hero.id), 
-          React.createElement("td", null, 
-            React.createElement("a", {href: "#heros/" + hero.id}, 
-              hero.firstName, " ", hero.lastName
-            )
-          )
+          React.createElement("td", null, React.createElement(Link, {to: "editHero", params: {id: hero.id}}, hero.id)), 
+          React.createElement("td", null, hero.firstName, " ", hero.lastName)
         )
-      )
+      );
     };
     return(
 
@@ -48862,7 +49349,7 @@ var HeroList = React.createClass({displayName: "HeroList",
 
 module.exports = HeroList;
 
-},{"react":197}],206:[function(require,module,exports){
+},{"react":197,"react-router":28}],208:[function(require,module,exports){
 "use strict";
 var React = require('react');
 var Input  = require('../common/textInput');
@@ -48871,6 +49358,12 @@ var Input  = require('../common/textInput');
 //React ignores any changes to the value
 
 var heroForm = React.createClass({displayName: "heroForm",
+  propTypes:{
+    hero: React.PropTypes.object.isRequired,
+    onSave: React.PropTypes.func.isRequired,
+    onChange: React.PropTypes.func.isRequired,
+    errors:React.PropTypes.object
+  },
   render: function(){
     console.log(this.props.hero);
     return(
@@ -48880,15 +49373,17 @@ var heroForm = React.createClass({displayName: "heroForm",
             name: "firstName", 
             label: "First Name", 
             value: this.props.hero.firstName, 
-            onChange: this.props.onChange}), 
+            onChange: this.props.onChange, 
+            error: this.props.errors.firstName}), 
             React.createElement("br", null), 
             React.createElement(Input, {type: "text", 
               name: "lastName", 
               label: "Last Name", 
               value: this.props.hero.lastName, 
-              onChange: this.props.onChange}), 
+              onChange: this.props.onChange, 
+              error: this.props.errors.lastName}), 
             React.createElement("br", null), 
-          React.createElement("input", {type: "submit", className: "btn btn-default", value: "save"})
+          React.createElement("input", {type: "submit", className: "btn btn-default", value: "save", onClick: this.props.onSave})
         )
     );
   }
@@ -48896,7 +49391,7 @@ var heroForm = React.createClass({displayName: "heroForm",
 
 module.exports = heroForm;
 
-},{"../common/textInput":204,"react":197}],207:[function(require,module,exports){
+},{"../common/textInput":206,"react":197}],209:[function(require,module,exports){
 "use strict";
 
 var React = require('react');
@@ -48930,29 +49425,90 @@ var HerosPage = React.createClass({displayName: "HerosPage",
 
 module.exports = HerosPage;
 
-},{"../../api/HeroApi":198,"./HeroList":205,"react":197,"react-router":28}],208:[function(require,module,exports){
+},{"../../api/HeroApi":199,"./HeroList":207,"react":197,"react-router":28}],210:[function(require,module,exports){
 "use strict";
 var React = require('react');
 var HeroForm = require('./heroForm');
+var HeroApi = require('../../api/heroApi');
+var Router = require('react-router');
+var Toastr = require('toastr');
 
 var ManageHeros = React.createClass({displayName: "ManageHeros",
+  //React needs this to be named mixins and to be defined as an array
+  mixins:[
+    Router.Navigation
+  ],
+
+  statics:{
+    willTransitionFrom:function(transition, component){
+      console.log(component.state);
+      if(component.state.dirty && !confirm('Leave without saving?')){
+        transition.abort();
+      }
+    }
+  },
   getInitialState:function(){
     return{
-      hero : {id:'', firstName:'', lastName:''}
+      hero : {id:'', firstName:'', lastName:''},
+      errors:{},
+      dirty: false
     };
   },
-  setHeroState: function(event){
+  componentWillMount:function(){
+    //setstate here will not cause a re-render
+    //props.params allow access to the query params
+    var heroId = this.props.params.id //fromt the path /author:id
 
+    if(heroId){
+      this.setState({hero: HeroApi.getHeroById(heroId)});
+    }
+
+  },
+  setHeroState: function(event){
+    //form has been changed, dirty = true
+    this.setState({dirty:true});
+    console.log(this.state.dirty);
     var field = event.target.name;
     var value = event.target.value;
     this.state.hero[field] = value;
-    console.log(event.target) ;
-      console.log(this.refs) ;
+
     return this.setState({hero: this.state.hero});
+  },
+  heroFormIsValid:function(){
+    var isValid = true;
+    this.state.errors={};
+
+    if(this.state.hero.firstName.length < 3){
+      this.state.errors.firstName = "First Name must be at least 3 characters";
+      isValid = false;
+    }
+    if(this.state.hero.lastName.length < 3){
+      this.state.errors.lastName = "localhost Name must be at least 3 characters";
+      isValid = false;
+    }
+    //anytime you update the state call setState
+    this.setState({error:this.state.errors});
+    return isValid;
+  },
+  saveHero:function(evt){
+    evt.preventDefault();
+
+    if(!this.heroFormIsValid()){
+      return;
+    }
+
+    HeroApi.saveHero(this.state.hero);
+    Toastr.success('Hero saved');
+    this.setState({dirty:false});
+    // uses the mixin
+    this.transitionTo('heros');
   },
   render: function(){
     return(
-        React.createElement(HeroForm, {hero: this.state.hero, onChange: this.setHeroState})
+        React.createElement(HeroForm, {hero: this.state.hero, 
+          onChange: this.setHeroState, 
+          onSave: this.saveHero, 
+          errors: this.state.errors})
     );
   }
 });
@@ -48965,7 +49521,7 @@ firstName:'James',
 lastName:'Howlett',
 heroName:'Wolverine'*/
 
-},{"./heroForm":206,"react":197}],209:[function(require,module,exports){
+},{"../../api/heroApi":200,"./heroForm":208,"react":197,"react-router":28,"toastr":198}],211:[function(require,module,exports){
 "use strict";
 var React = require('react');
 var Router = require('react-router');
@@ -48985,7 +49541,7 @@ var Home = React.createClass({displayName: "Home",
 
 module.exports = Home;
 
-},{"react":197,"react-router":28}],210:[function(require,module,exports){
+},{"react":197,"react-router":28}],212:[function(require,module,exports){
 
 var React = require('react');
 var Router = require('react-router');
@@ -49000,7 +49556,7 @@ Router.run(routes,function(Handler){
 //React.render(<Home/>, document.getElementById('app'));
 //React.render(<Home/>, document.getElementById('app'));
 
-},{"./routes":211,"react":197,"react-router":28}],211:[function(require,module,exports){
+},{"./routes":213,"react":197,"react-router":28}],213:[function(require,module,exports){
 "use strict";
 
 var React = require('react');
@@ -49017,6 +49573,7 @@ var routes=(
     React.createElement(Route, {name: "about", handler: require('./components/about/aboutPage')}), 
     React.createElement(Route, {name: "heros", handler: require('./components/heros/herosPage')}), 
     React.createElement(Route, {name: "addHero", path: "hero", handler: require('./components/heros/manageHeros')}), 
+    React.createElement(Route, {name: "editHero", path: "hero/:id", handler: require('./components/heros/manageHeros')}), 
       React.createElement(NotFoundRoute, {handler: require('./components/404')}), 
       React.createElement(Redirect, {from: "about-us", to: "about"}), 
       "/*can also be used for common typos", 
@@ -49025,4 +49582,4 @@ var routes=(
 );
 module.exports = routes;
 
-},{"./components/404":200,"./components/about/aboutPage":201,"./components/app":202,"./components/heros/herosPage":207,"./components/heros/manageHeros":208,"./components/homePage":209,"react":197,"react-router":28}]},{},[210]);
+},{"./components/404":202,"./components/about/aboutPage":203,"./components/app":204,"./components/heros/herosPage":209,"./components/heros/manageHeros":210,"./components/homePage":211,"react":197,"react-router":28}]},{},[212]);
