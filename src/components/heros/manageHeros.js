@@ -20,6 +20,7 @@ var ManageHeros = React.createClass({
     }
   },
   getInitialState:function(){
+    console.log('initial state');
     return{
       hero : {id:'', firstName:'', lastName:''},
       errors:{},
@@ -27,6 +28,7 @@ var ManageHeros = React.createClass({
     };
   },
   componentWillMount:function(){
+    console.log('comp will mount');
     //setstate here will not cause a re-render
     //props.params allow access to the query params
     var heroId = this.props.params.id //fromt the path /author:id
@@ -76,6 +78,7 @@ var ManageHeros = React.createClass({
     this.transitionTo('heros');
   },
   render: function(){
+    console.log('render');
     return(
         <HeroForm hero={this.state.hero}
           onChange={this.setHeroState}
